@@ -1,33 +1,134 @@
-# emergence: a graph database for governance, risk, & compliance
-![emergence](https://github.com/user-attachments/assets/c274fcd2-af2b-4b21-913b-991c9fe4c63b)
+# EmergenceDB GRC Security Graph Model
 
-emergence is an open-source graph database model for use in governance, risk, & compliance (GRC). <br/>
-<br/>
-The graph database model outlines a schema for representing the itnerconnected pieces of a an organization's GRC program into objects (nodes) and relationships (edges).
+## Overview
+EmergenceDB is an open-source graph model for Governance, Risk, and Compliance (GRC) systems. It allows users to define, query, and manage relationships between key GRC entities such as requirements, controls, policies, risks, and evidence. This schema supports dynamic queries, integrations, and customization to fit diverse organizational needs.
 
-**Emergence Core** <br/>
-emergence core is the foundational graph model and can be extended with out-of-the-box or custom model extensions. <br/>
-emergence core supports the following graph objects: <br/>
-Object  | Labels
-------------- | -------------
-Policy Statement  | policy name, verbiage, approved by, approved date, date added, statement id 
-Control  | id, name, description, type, implementation status
-Requirement | id, name, description, authority document, authority, type
+---
 
-**Extending emergence core** <br/>
-emergence can be extended with either out-of-the-box (coming soon) or custom extensions. <br/>
-<br/>
-Because emergence is a graph model, extending the model is as simple as adding new object types and defining the relationships it has to the rest of the model. <br/>
-<br/>
-You can use something as simple as mind-map style whiteboarding to define and integrate new data types into the model. <br/>
-<br/>
-It is recommended to keep objects data-source agnostic and use a data normalizer to map data sources to appropriate objects, relationships, and labels. <br/>
-<br/>
-For example, instead of creating a node for active directory users, create a user object that can be mapped to from AD, AAD, Okta, etc. <br/>
-<br/>
-**Why a graph database?** <br/>
-<br/>
-emergence is a graph database for a few reasons: <br/>
-* easily extended through whiteboarding / mind-mapping
-* allows unique graph analytics such as path analysis
-* accurately represents the interconnected objects that make up a GRC program
+## Core Entities and Properties
+
+### Controls
+- **Node Label:** `Control`
+- **Key Properties:**
+  - `ControlID`: Unique identifier (e.g., "AC-1").
+  - `Name`: Name of the control.
+  - `Description`: Control details.
+  - `Implemented`: Boolean indicating if implemented.
+  - `Framework`: Associated framework (e.g., NIST, PCI-DSS).
+
+### Requirements
+- **Node Label:** `Requirement`
+- **Key Properties:**
+  - `RequirementID`: Unique identifier (e.g., "NIST-800-53-AC-1").
+  - `Name`: Short description.
+  - `Description`: Requirement details.
+  - `Framework`: Associated framework.
+  - `NodePack`: Grouping mechanism for requirements.
+
+### Policies
+- **Node Label:** `Policy`
+- **Key Properties:**
+  - `PolicyID`: Unique identifier.
+  - `Name`: Policy name.
+  - `Description`: Overview.
+  - `LastUpdated`: Last updated timestamp.
+
+### Evidence
+- **Node Label:** `Evidence`
+- **Key Properties:**
+  - `EvidenceID`: Unique identifier.
+  - `ArtifactDescription`: Evidence details.
+  - `Source`: Evidence origin.
+  - `DateCollected`: Collection date.
+
+### Risks
+- **Node Label:** `Risk`
+- **Key Properties:**
+  - `RiskID`: Unique identifier.
+  - `Name`: Risk name.
+  - `Description`: Details.
+  - `Severity`: Severity level.
+  - `Likelihood`: Likelihood of occurrence.
+  - `Impact`: Potential impact.
+
+---
+
+## Relationships
+
+### Defined Relationships
+- **`(:Control)-[:Satisfies]->(:Requirement)`**: Links a control to the requirement it satisfies.
+- **`(:Evidence)-[:Supports]->(:Control)`**: Connects evidence to the control it supports.
+- **`(:Control)-[:Mitigates]->(:Risk)`**: Indicates a control mitigates a specific risk.
+- **`(:Policy)-[:Documents]->(:Control)`**: Links policies to the controls they document.
+- **`(:Requirement)-[:RelatesTo]->(:Requirement)`**: Shows conceptual links between related requirements.
+
+---
+
+## Example Queries
+
+### Fetch Controls for a Specific Requirement
+```cypher
+MATCH (control:Control)-[:Satisfies]->(requirement:Requirement {RequirementID: "PCI-DSS-1.1"})
+RETURN control.Name, control.Description
+```
+
+### Trace Evidence for a Specific Control
+```cypher
+MATCH (evidence:Evidence)-[:Supports]->(control:Control {ControlID: "AC-1"})
+RETURN evidence.EvidenceID, evidence.ArtifactDescription
+```
+
+### Identify Risks Mitigated by Implemented Controls
+```cypher
+MATCH (control:Control)-[:Mitigates]->(risk:Risk)
+WHERE control.Implemented = true
+RETURN risk.Name, risk.Description, risk.Severity
+```
+
+---
+
+## Getting Started
+
+### 1. Setting Up the Database
+- Install a graph database such as [Neo4j](https://neo4j.com/).
+- Create indices for `ControlID`, `RequirementID`, and `RiskID` to optimize query performance.
+
+### 2. Populating the Graph
+- Import your organization’s GRC data to create nodes and relationships.
+- Automate data ingestion from compliance tools, vulnerability scanners, or other sources.
+
+### 3. Customizing the Model
+#### Adding Properties:
+- Extend existing nodes with additional properties (e.g., `Owner` for `Control` or `Priority` for `Risk`).
+
+#### Adding New Nodes:
+- Example: **Audits**
+  - `AuditID`, `AuditDate`, `Auditor`
+  - Relationships:
+    - `(:Audit)-[:Evaluates]->(:Control)`
+    - `(:Audit)-[:ReportsOn]->(:Risk)`
+
+#### Adding Relationships:
+- Define custom relationships (e.g., `(:Risk)-[:Exacerbates]->(:Risk)` to model cascading risks).
+
+### 4. Visualization
+- Use tools like Neo4j Bloom or integrate with Power BI for interactive visualizations.
+
+---
+
+## Governance
+
+1. **Maintenance**
+   - Regularly audit nodes and relationships to ensure data accuracy.
+   - Version control schema changes.
+
+2. **Access Control**
+   - Apply RBAC (Role-Based Access Control) to manage permissions.
+
+3. **Documentation**
+   - Maintain a registry of node types, properties, and relationships.
+
+---
+
+## Contact
+For questions, feedback, or contributions, reach out to mitchell@securemetrics.io.
